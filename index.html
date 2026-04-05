@@ -165,7 +165,10 @@ tfoot td:first-child{text-align:left;font-family:'Noto Sans JP',sans-serif;font-
   <div id="panel-result" class="panel">
     <div id="teamSummary"></div>
     <div id="cardsGrid" class="cards-grid"></div>
-    <button class="re-btn" onclick="switchTab('input')">📋 再入力する</button>
+    <div style="display:flex;gap:8px;margin-top:18px;justify-content:center;flex-wrap:wrap">
+      <button id="mailBtn" onclick="sendMail()" style="padding:12px 24px;border-radius:10px;background:linear-gradient(135deg,#f0883e,#e3b341);border:none;color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;display:none">📧 メールで送る</button>
+      <button class="re-btn" style="margin:0" onclick="switchTab('input')">📋 再入力する</button>
+    </div>
   </div>
 
   <!-- 週次累計 -->
@@ -692,7 +695,65 @@ async function parse() {
   showToast('✅ 週次・月次累計に保存しました');
   document.getElementById('teamSummary').innerHTML=teamSummaryHTML(members);
   document.getElementById('cardsGrid').innerHTML=members.map((m,i)=>memberCardHTML(m,i)).join('');
+  // メールボタンを表示してメンバーデータを保持
+  window._lastMembers = members;
+  document.getElementById('mailBtn').style.display='inline-block';
   switchTab('result');
+}
+
+// ── メール送信 ────────────────────────────────────────────
+function generateMailBody(members) {
+  const now = new Date();
+  const dow = ['日','月','火','水','木','金','土'][now.getDay()];
+  const dateStr = (now.getMonth()+1) + '/' + now.getDate() + '(' + dow + ')';
+  const f0 = v => (v===null||v===undefined) ? '0' : String(v);
+  const fY = v => (v===null||v===undefined) ? '¥0' : '¥' + Number(v).toLocaleString();
+  const s  = fn => members.reduce((a,m) => a + (fn(m) ?? 0), 0);
+  const n = '\n';
+
+  let body = dateStr + ' 本日実績報告' + n;
+  body += '━━━━━━━━━━━━━━━' + n + n;
+
+  members.forEach(m => {
+    body += '【' + (m.name || '不明') + '】' + n;
+    if (m.allZero) { body += '　全て0' + n + n; return; }
+    let cS = f0(m.c.todayShinki) + '台';
+    const bd = [];
+    if (m.c.jiriki !== null) bd.push('自力' + m.c.jiriki);
+    if (m.c.anken  !== null) bd.push('案件' + m.c.anken);
+    if (bd.length) cS += '(' + bd.join(' ') + ')';
+    body += '　C新規：' + cS + n;
+    body += '　C解約：' + f0(m.c.todayKaiyaku) + '台' + n;
+    if (m.kaisha.shinki !== null || m.kaisha.kaiyaku !== null)
+      body += '　会社：新規' + f0(m.kaisha.shinki) + ' 解約' + f0(m.kaisha.kaiyaku) + n;
+    body += '　FF：新規' + f0(m.ff.shinki) + ' 解約' + f0(m.ff.kaiyaku) + n;
+    body += '　ジアコ：新規' + f0(m.jiako.shinki) + ' 解約' + f0(m.jiako.kaiyaku) + n;
+    if (m.secchi.today !== null) body += '　設置：' + f0(m.secchi.today) + '台' + n;
+    body += '　副商材：' + fY(m.fuku.today) + n + n;
+  });
+
+  body += '━━━━━━━━━━━━━━━' + n;
+  body += '【チーム合計】' + n;
+  body += '　C新規：' + s(m => m.c.todayShinki) + '台' + n;
+  body += '　C解約：' + s(m => m.c.todayKaiyaku) + '台' + n;
+  body += '　FF新規：' + s(m => m.ff.shinki) + '台' + n;
+  body += '　ジアコ新規：' + s(m => m.jiako.shinki) + '台' + n;
+  if (s(m => m.secchi.today) > 0) body += '　設置：' + s(m => m.secchi.today) + '台' + n;
+  body += '　副商材：' + fY(s(m => m.fuku.today)) + n;
+  body += '　報告：' + members.length + '名' + n;
+  body += '━━━━━━━━━━━━━━━';
+  return body;
+}
+
+function sendMail() {
+  const members = window._lastMembers;
+  if (!members || !members.length) { showToast('❌ まず日報をまとめてください'); return; }
+  const now = new Date();
+  const dow = ['日','月','火','水','木','金','土'][now.getDay()];
+  const subject = (now.getMonth()+1) + '/' + now.getDate() + '(' + dow + ') 本日実績報告';
+  const body = generateMailBody(members);
+  const to = 'ryota-katagiri@nacoo.com';
+  window.location.href = 'mailto:' + to + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
 }
 </script>
 </body>
