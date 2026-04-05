@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>クリクラ 日報まとめ｜名古屋営業所</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#0d1117; --surface:#161b22; --card:#1c2130; --border:#30363d;
+  --text:#e6edf3; --muted:#7d8590;
+  --blue:#58a6ff; --green:#3fb950; --red:#f85149;
+  --yellow:#e3b341; --purple:#bc8cff; --orange:#f0883e; --cyan:#39c5cf;
+}
+body { background:var(--bg); color:var(--text); font-family:'Noto Sans JP',sans-serif; min-height:100vh; padding:20px 14px 60px; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+.fade { animation:fadeUp .4s ease both; }
+textarea { resize:vertical; }
+::-webkit-scrollbar{width:5px} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.wrap { max-width:1020px; margin:0 auto; }
+
+.header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.header-icon{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#58a6ff,#3fb950);display:flex;align-items:center;justify-content:center;font-size:20px}
+.header h1{font-size:17px;font-weight:800} .header p{font-size:11px;color:var(--muted)}
+
+.tabs{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap}
+.tab-btn{padding:8px 14px;border-radius:8px;border:none;background:var(--surface);color:var(--muted);font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;transition:all .2s}
+.tab-btn.active{background:var(--blue);color:#fff}
+.panel{display:none} .panel.active{display:block;animation:fadeUp .3s ease both}
+
+.input-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden}
+.input-hint{padding:9px 14px 6px;font-size:11px;color:var(--muted);border-bottom:1px solid var(--border);line-height:1.6}
+textarea{width:100%;border:none;outline:none;background:transparent;color:var(--text);padding:12px 14px;font-size:13px;font-family:'DM Mono',monospace;line-height:1.8}
+.parse-btn{width:100%;padding:13px;border-radius:10px;background:linear-gradient(135deg,#58a6ff,#3fb950);border:none;color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;transition:opacity .2s}
+.parse-btn:hover{opacity:.85}
+
+/* 名前なし警告モーダル */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;width:100%;max-width:420px}
+.modal-title{font-size:15px;font-weight:800;margin-bottom:6px}
+.modal-sub{font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6}
+.modal-member-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.modal-member-label{font-size:13px;font-weight:700;min-width:60px;color:var(--muted)}
+.member-select{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 10px;font-size:13px;font-family:inherit;outline:none}
+.modal-btns{display:flex;gap:8px;margin-top:16px}
+.modal-btn{flex:1;padding:11px;border-radius:8px;border:none;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit}
+.modal-btn-ok{background:linear-gradient(135deg,#58a6ff,#3fb950);color:#fff}
+.modal-btn-cancel{background:var(--surface);color:var(--muted);border:1px solid var(--border)}
+
+.team-box{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:20px}
+.team-title{font-size:13px;font-weight:800;margin-bottom:12px}
+.stat-grid{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+.stat-cell{flex:1 1 80px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center}
+.stat-label{font-size:10px;color:var(--muted);margin-bottom:2px}
+.stat-val{font-size:17px;font-weight:800;font-family:'DM Mono',monospace}
+.prog-row{margin-bottom:8px}
+.prog-meta{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:3px}
+.prog-track{height:6px;background:var(--border);border-radius:99px;overflow:hidden}
+.prog-fill{height:100%;border-radius:99px;transition:width .7s ease}
+
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.member-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.card-strip{height:3px} .card-body{padding:16px}
+.card-header{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;flex-shrink:0}
+.card-name{font-size:17px;font-weight:800} .card-sub{font-size:11px;color:var(--muted)}
+.sec{margin-bottom:14px} .sec-label{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px}
+.server-row{display:flex;gap:7px}
+.server-block{flex:1;border-radius:10px;padding:10px 10px 11px;min-width:0;background:var(--surface)}
+.server-head{display:flex;align-items:center;gap:5px;margin-bottom:9px}
+.server-name{font-size:11px;font-weight:800}
+.sv-vals{display:flex;gap:5px}
+.sv-cell{flex:1;text-align:center} .sv-lbl{font-size:9px;color:var(--muted);margin-bottom:2px}
+.sv-val{font-size:20px;font-weight:800;font-family:'DM Mono',monospace;line-height:1.1}
+.sv-unit{font-size:9px;font-weight:400}
+.divider-v{width:1px;background:var(--border);align-self:stretch}
+.breakdown{display:flex;gap:4px;margin-top:7px}
+.bd-badge{flex:1;border-radius:5px;padding:3px 5px;text-align:center}
+.bd-lbl{font-size:8px;color:var(--muted)} .bd-val{font-size:13px;font-weight:800;font-family:'DM Mono',monospace}
+.kaisha-area{border-top:1px solid var(--border);padding-top:7px;margin-top:8px}
+.kaisha-lbl{font-size:9px;color:var(--muted);margin-bottom:4px}
+.kaisha-badges{display:flex;gap:5px}
+.kaisha-badge{flex:1;border-radius:6px;padding:3px 6px;text-align:center}
+.kb-lbl{font-size:8px;color:var(--muted)} .kb-val{font-size:14px;font-weight:800;font-family:'DM Mono',monospace}
+.num-row{display:flex;gap:6px;margin-bottom:6px}
+.num-box{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 8px;text-align:center}
+.num-lbl{font-size:10px;color:var(--muted);margin-bottom:3px}
+.num-val{font-size:19px;font-weight:800;font-family:'DM Mono',monospace;line-height:1.1}
+.num-unit{font-size:10px;font-weight:400}
+.fuku-row{display:flex;gap:6px;margin-bottom:6px}
+.fuku-cell{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 10px;text-align:center}
+.fuku-lbl{font-size:10px;color:var(--muted);margin-bottom:2px}
+.fuku-val{font-size:16px;font-weight:800;font-family:'DM Mono',monospace}
+.zero-badge{display:inline-block;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:4px 14px;font-size:12px;color:var(--muted);margin-top:4px}
+
+.line-output-box{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:20px}
+.line-output-title{font-size:13px;font-weight:800;margin-bottom:12px}
+.line-text-area{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:14px;font-size:13px;font-family:'DM Mono',monospace;line-height:1.9;outline:none;min-height:300px}
+.copy-btn{width:100%;margin-top:10px;padding:12px;border-radius:10px;background:linear-gradient(135deg,#3fb950,#58a6ff);border:none;color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;transition:all .2s}
+.copy-btn.copied{background:linear-gradient(135deg,#3fb950,#3fb950)}
+
+.monthly-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.monthly-title{font-size:15px;font-weight:800} .monthly-meta{font-size:11px;color:var(--muted)}
+.reset-btn{padding:7px 14px;border-radius:8px;border:1px solid var(--red);background:transparent;color:var(--red);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s}
+.reset-btn:hover{background:var(--red);color:#fff}
+.monthly-table-wrap{overflow-x:auto;margin-bottom:20px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{background:var(--surface);border:1px solid var(--border);padding:8px 12px;text-align:center;font-weight:700;font-size:11px;color:var(--muted);white-space:nowrap}
+thead th:first-child{text-align:left}
+tbody td{border:1px solid var(--border);padding:8px 12px;text-align:center;font-family:'DM Mono',monospace;font-size:14px;vertical-align:middle}
+tbody td:first-child{text-align:left;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:13px;white-space:nowrap}
+tbody tr:hover td{background:#ffffff08}
+.td-name{display:flex;align-items:center;gap:8px}
+.td-avatar{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0}
+tfoot td{background:var(--surface);border:1px solid var(--border);padding:8px 12px;text-align:center;font-weight:800;font-family:'DM Mono',monospace;font-size:14px}
+tfoot td:first-child{text-align:left;font-family:'Noto Sans JP',sans-serif;font-size:12px}
+.monthly-team-bars{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:20px}
+.log-area{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;max-height:120px;overflow-y:auto;margin-top:16px}
+.log-row{margin-bottom:2px}
+
+.empty{text-align:center;padding:60px;color:var(--muted);grid-column:1/-1}
+.empty-icon{font-size:40px;margin-bottom:12px}
+.re-btn{display:block;margin:18px auto 0;padding:9px 22px;border-radius:8px;background:var(--surface);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600}
+.save-toast{position:fixed;bottom:24px;right:18px;background:#3fb950;color:#fff;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;opacity:0;transition:opacity .3s;pointer-events:none;z-index:200}
+.save-toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header fade">
+    <div class="header-icon">💧</div>
+    <div>
+      <h1>クリクラ 日報まとめ</h1>
+      <p id="dateLabel"></p>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('input')">📋 日報入力</button>
+    <button class="tab-btn"        onclick="switchTab('result')">📊 本日まとめ</button>
+    <button class="tab-btn"        onclick="switchTab('line')">📱 LINE用テキスト</button>
+    <button class="tab-btn"        onclick="switchTab('monthly')">📅 月次累計</button>
+  </div>
+
+  <div id="panel-input" class="panel active">
+    <div class="input-box">
+      <div class="input-hint">
+        💡 LINEのトーク内容をそのままコピペしてください。<br>
+        　 フルネーム（片桐 僚太）・姓のみ（片桐）・名前なし、どれでも対応します。
+      </div>
+      <textarea id="lineInput" rows="24" placeholder="片桐 僚太&#10;お疲れ様です。&#10;&#10;C新規目標15台&#10;本日2台(自力2案件0)&#10;..."></textarea>
+    </div>
+    <button class="parse-btn" onclick="parse()">✨ まとめる（月次累計に保存）</button>
+  </div>
+
+  <div id="panel-result" class="panel">
+    <div id="teamSummary"></div>
+    <div id="cardsGrid" class="cards-grid"></div>
+    <button class="re-btn" onclick="switchTab('input')">📋 再入力する</button>
+  </div>
+
+  <div id="panel-line" class="panel">
+    <div class="line-output-box">
+      <div class="line-output-title">📱 LINEに送れるテキスト</div>
+      <textarea class="line-text-area" id="lineOutputText" readonly></textarea>
+      <button class="copy-btn" id="copyBtn" onclick="copyLineText()">📋 コピーする</button>
+    </div>
+    <button class="re-btn" onclick="switchTab('input')">📋 再入力する</button>
+  </div>
+
+  <div id="panel-monthly" class="panel">
+    <div class="monthly-header">
+      <div>
+        <div class="monthly-title">📅 月次累計</div>
+        <div class="monthly-meta" id="monthlyMeta"></div>
+      </div>
+      <button class="reset-btn" onclick="confirmReset()">🔄 月次リセット</button>
+    </div>
+    <div id="monthlyContent"></div>
+  </div>
+</div>
+
+<!-- 名前確認モーダル -->
+<div class="modal-overlay" id="nameModal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-title">👤 名前が確認できませんでした</div>
+    <div class="modal-sub">以下のブロックの送信者を選択してください。<br>（LINEコピペ時に名前が含まれなかった場合）</div>
+    <div id="modalRows"></div>
+    <div class="modal-btns">
+      <button class="modal-btn modal-btn-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="modal-btn modal-btn-ok" onclick="confirmNames()">✅ この名前で確定</button>
+    </div>
+  </div>
+</div>
+
+<div class="save-toast" id="saveToast"></div>
+
+<script>
+// ── メンバーマスタ ────────────────────────────────────────
+const MEMBERS = ['片桐','矢島','梶川','加藤','松尾','鹿谷','滝川','岡本','長江'];
+const AVATAR  = ['#58a6ff','#3fb950','#bc8cff','#f0883e','#39c5cf','#ff7b72','#e3b341','#34d399','#f472b6'];
+const CO = {blue:'#58a6ff',green:'#3fb950',red:'#f85149',yellow:'#e3b341',purple:'#bc8cff',orange:'#f0883e',cyan:'#39c5cf',muted:'#7d8590'};
+const STORAGE_KEY = 'kurikura_monthly_v2';
+
+const NOW = new Date();
+const YEAR_MONTH = `${NOW.getFullYear()}-${String(NOW.getMonth()+1).padStart(2,'0')}`;
+const DATE_STR   = `${NOW.getMonth()+1}/${NOW.getDate()}（${'日月火水木金土'[NOW.getDay()]}）`;
+document.getElementById('dateLabel').textContent =
+  `${NOW.getFullYear()}年${NOW.getMonth()+1}月${NOW.getDate()}日　名古屋営業所`;
+
+// ── Tab ───────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+tab).classList.add('active');
+  document.querySelectorAll('.tab-btn')[{input:0,result:1,line:2,monthly:3}[tab]].classList.add('active');
+  if (tab==='monthly') renderMonthly();
+}
+
+// ── 名前正規化 ────────────────────────────────────────────
+// フルネーム「片桐 僚太」→「片桐」に変換
+function normalizeName(raw) {
+  const t = raw.trim();
+  // メンバーリストと完全一致
+  for (const m of MEMBERS) if (t === m) return m;
+  // メンバーリストで始まるフルネーム「片桐 僚太」「片桐僚太」
+  for (const m of MEMBERS) if (t.startsWith(m)) return m;
+  // スペース区切りの姓部分がメンバーに一致
+  const sei = t.split(/[\s　]/)[0];
+  for (const m of MEMBERS) if (sei === m) return m;
+  return null; // 不明
+}
+
+// ── Parser ────────────────────────────────────────────────
+function parseReports(raw) {
+  const lines = raw.split('\n');
+  const members = [];
+  let cur = null, sec = '';
+
+  const blank = (name='') => ({
+    name, allZero:false,
+    c:     {todayShinki:null,jiriki:null,anken:null,cumulShinki:null,goalShinki:null,todayKaiyaku:null,cumulKaiyaku:null},
+    kaisha:{shinki:null,kaiyaku:null},
+    secchi:{today:null,jiriki:null,anken:null},
+    ff:    {shinki:null,kaiyaku:null},
+    jiako: {shinki:null,kaiyaku:null},
+    fuku:  {today:null,cumul:null,goal:null},
+  });
+
+  const flush = () => { if (cur) members.push(cur); };
+  const getNum = s => { const m=s.match(/(\d[\d,]*)/); return m?parseInt(m[1].replace(/,/g,'')):null; };
+  const getBreakdown = s => {
+    const jm=s.match(/自力(\d+)/), am=s.match(/案件(\d+)/);
+    const aN=/案件[）)\s]/.test(s)||/（案件）/.test(s)||/\(案件\)/.test(s);
+    const jN=/自力[）)\s]/.test(s)||/（自力）/.test(s)||/\(自力\)/.test(s);
+    return {jiriki:jm?parseInt(jm[1]):(jN?1:null), anken:am?parseInt(am[1]):(aN?1:null)};
+  };
+
+  // 名前行かどうかの判定（メンバーマスタ優先、フルネームも対応）
+  const isNameLine = line => {
+    const t = line.trim();
+    if (!t) return false;
+    // メンバーマスタに一致 or メンバー名で始まる行
+    for (const m of MEMBERS) {
+      if (t === m || t.startsWith(m+' ') || t.startsWith(m+'　')) return true;
+    }
+    return false;
+  };
+
+  for (let i=0;i<lines.length;i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    if (isNameLine(line)) {
+      flush();
+      cur = blank(normalizeName(line));
+      sec = '';
+      continue;
+    }
+
+    // 名前なしで日報っぽい行が始まった場合（C新規目標〜など）
+    if (!cur && /^C新規目標|^C新規|^C解約|^設置$|^副商材$|^FF[（(]/i.test(line)) {
+      flush();
+      cur = blank(''); // 名前未定
+      sec = '';
+      // fall through して以下の処理へ
+    }
+
+    if (!cur) continue;
+
+    if (/全て0|全部0|すべて0/.test(line)) { cur.allZero=true; continue; }
+    if (/^C新規/i.test(line))   { sec='c_shinki';  cur.c.goalShinki=getNum(line); continue; }
+    if (/^C解約/i.test(line))   { sec='c_kaiyaku'; continue; }
+    if (/^設置$/.test(line))    { sec='secchi';    continue; }
+    if (/^副商材$/.test(line))  { sec='fuku';      continue; }
+
+    if (/^FF[（(]/i.test(line)) {
+      cur.ff.shinki =parseInt(line.match(/新規(\d+)/)?.[1]??0);
+      cur.ff.kaiyaku=parseInt(line.match(/解約(\d+)/)?.[1]??0);
+      continue;
+    }
+    if (/^ジアコ[（(]/.test(line)) {
+      cur.jiako.shinki =parseInt(line.match(/新規(\d+)/)?.[1]??0);
+      cur.jiako.kaiyaku=parseInt(line.match(/解約(\d+)/)?.[1]??0);
+      continue;
+    }
+    if (/^c新規|^C新規/i.test(line)&&!/目標/.test(line)) {
+      const n=getNum(line); const bd=getBreakdown(line);
+      if (n!==null) cur.c.todayShinki=n;
+      if (bd.jiriki!==null) cur.c.jiriki=bd.jiriki;
+      if (bd.anken !==null) cur.c.anken =bd.anken;
+      if (n===null&&(bd.jiriki!==null||bd.anken!==null)) cur.c.todayShinki=(bd.jiriki??0)+(bd.anken??0);
+      continue;
+    }
+    if (/^c解約|^C解約/i.test(line)&&!/^C解約$/.test(line)) { const n=getNum(line); if(n!==null) cur.c.todayKaiyaku=n; continue; }
+    if (/^FF新規/i.test(line))    { cur.ff.shinki  =getNum(line)??0; continue; }
+    if (/^FF解約/i.test(line))    { cur.ff.kaiyaku =getNum(line)??0; continue; }
+    if (/^ジアコ新規/.test(line)) { cur.jiako.shinki  =getNum(line)??0; continue; }
+    if (/^ジアコ解約/.test(line)) { cur.jiako.kaiyaku =getNum(line)??0; continue; }
+    if (/^副商材\d/.test(line))   { cur.fuku.today=getNum(line); sec=''; continue; }
+    if (/^会社新規/.test(line))   { cur.kaisha.shinki =getNum(line); continue; }
+    if (/^会社解約/.test(line))   { cur.kaisha.kaiyaku=getNum(line); continue; }
+
+    if (/^本日\d+台/.test(line)) {
+      const n=getNum(line); const bd=getBreakdown(line);
+      if (sec==='c_shinki')  { cur.c.todayShinki=n; if(bd.jiriki!==null)cur.c.jiriki=bd.jiriki; if(bd.anken!==null)cur.c.anken=bd.anken; }
+      if (sec==='c_kaiyaku') cur.c.todayKaiyaku=n;
+      if (sec==='secchi')    { cur.secchi.today=n; if(bd.jiriki!==null)cur.secchi.jiriki=bd.jiriki; if(bd.anken!==null)cur.secchi.anken=bd.anken; }
+      continue;
+    }
+    if (/^累計\d+台/.test(line)) {
+      const n=getNum(line);
+      if (sec==='c_shinki')  cur.c.cumulShinki =n;
+      if (sec==='c_kaiyaku') cur.c.cumulKaiyaku=n;
+      continue;
+    }
+    if (sec==='fuku') {
+      if (/^目標/.test(line)) { cur.fuku.goal =getNum(line); continue; }
+      if (/^本日/.test(line)) { cur.fuku.today=getNum(line); continue; }
+      if (/^累計/.test(line)) { cur.fuku.cumul=getNum(line); continue; }
+    }
+  }
+  flush();
+  return members;
+}
+
+// ── 名前なし確認モーダル ──────────────────────────────────
+let pendingMembers = [];
+let resolveModal = null;
+
+function showNameModal(members) {
+  return new Promise(resolve => {
+    resolveModal = resolve;
+    const unnamed = members.filter(m => !m.name);
+    if (!unnamed.length) { resolve(members); return; }
+
+    const rows = unnamed.map((m, i) => {
+      const preview = buildPreview(m);
+      const opts = MEMBERS.map(n => `<option value="${n}">${n}</option>`).join('');
+      return `<div class="modal-member-row">
+        <div class="modal-member-label">📋 ${preview}</div>
+        <select class="member-select" id="nameSelect_${i}">${opts}</select>
+      </div>`;
+    }).join('');
+
+    document.getElementById('modalRows').innerHTML = rows;
+    document.getElementById('nameModal').style.display = 'flex';
+    pendingMembers = members;
+  });
+}
+
+function buildPreview(m) {
+  // 日報の内容から一行プレビュー
+  const parts = [];
+  if (m.c.todayShinki !== null) parts.push(`C新規${m.c.todayShinki}台`);
+  if (m.c.todayKaiyaku !== null) parts.push(`C解約${m.c.todayKaiyaku}台`);
+  if (m.fuku.today !== null) parts.push(`副商材¥${m.fuku.today}`);
+  return parts.length ? parts.join(' / ') : '日報データ';
+}
+
+function closeModal() {
+  document.getElementById('nameModal').style.display = 'none';
+  if (resolveModal) resolveModal(null);
+}
+
+function confirmNames() {
+  const unnamed = pendingMembers.filter(m => !m.name);
+  unnamed.forEach((m, i) => {
+    const sel = document.getElementById(`nameSelect_${i}`);
+    if (sel) m.name = sel.value;
+  });
+  document.getElementById('nameModal').style.display = 'none';
+  if (resolveModal) resolveModal(pendingMembers);
+}
+
+// ── LINEテキスト生成 ──────────────────────────────────────
+function generateLineText(members) {
+  if (!members.length) return '';
+  const f0 = v => (v===null||v===undefined)?'0':String(v);
+  const fY = v => (v===null||v===undefined)?'¥0':`¥${Number(v).toLocaleString()}`;
+  const s  = fn => members.reduce((a,m)=>a+(fn(m)??0),0);
+
+  let lines = [];
+  lines.push(`━━━━━━━━━━━━━━━`);
+  lines.push(`📊 ${DATE_STR} 本日まとめ`);
+  lines.push(`━━━━━━━━━━━━━━━`);
+  lines.push('');
+
+  members.forEach(m => {
+    lines.push(`👤 ${m.name||'不明'}`);
+    if (m.allZero) {
+      lines.push(`　📭 全て0`);
+    } else {
+      let cS = f0(m.c.todayShinki)+'台';
+      const bd=[];
+      if (m.c.jiriki!==null) bd.push(`自力${m.c.jiriki}`);
+      if (m.c.anken !==null) bd.push(`案件${m.c.anken}`);
+      if (bd.length) cS += `（${bd.join(' ')}）`;
+      lines.push(`　💧 C新規　${cS}`);
+      lines.push(`　❌ C解約　${f0(m.c.todayKaiyaku)}台`);
+      if (m.kaisha.shinki!==null||m.kaisha.kaiyaku!==null)
+        lines.push(`　🏢 会社　新規${f0(m.kaisha.shinki)} 解約${f0(m.kaisha.kaiyaku)}`);
+      lines.push(`　🚰 FF　新規${f0(m.ff.shinki)} 解約${f0(m.ff.kaiyaku)}`);
+      lines.push(`　🧴 ジアコ　新規${f0(m.jiako.shinki)} 解約${f0(m.jiako.kaiyaku)}`);
+      if (m.secchi.today!==null) {
+        let sec=f0(m.secchi.today)+'台';
+        const sb=[];
+        if(m.secchi.jiriki!==null)sb.push(`自力${m.secchi.jiriki}`);
+        if(m.secchi.anken !==null)sb.push(`案件${m.secchi.anken}`);
+        if(sb.length)sec+=`（${sb.join(' ')}）`;
+        lines.push(`　🔧 設置　${sec}`);
+      }
+      lines.push(`　💴 副商材　${fY(m.fuku.today)}`);
+    }
+    lines.push('');
+  });
+
+  lines.push(`━━━━━━━━━━━━━━━`);
+  lines.push(`📊 チーム合計`);
+  lines.push(`　💧 C新規　${s(m=>m.c.todayShinki)}台`);
+  lines.push(`　❌ C解約　${s(m=>m.c.todayKaiyaku)}台`);
+  const ks=s(m=>m.kaisha.shinki),kk=s(m=>m.kaisha.kaiyaku);
+  if (ks>0||kk>0) lines.push(`　🏢 会社　新規${ks} 解約${kk}`);
+  lines.push(`　🚰 FF　新規${s(m=>m.ff.shinki)} 解約${s(m=>m.ff.kaiyaku)}`);
+  lines.push(`　🧴 ジアコ　新規${s(m=>m.jiako.shinki)} 解約${s(m=>m.jiako.kaiyaku)}`);
+  const tse=s(m=>m.secchi.today);
+  if (tse>0) lines.push(`　🔧 設置　${tse}台`);
+  lines.push(`　💴 副商材　${fY(s(m=>m.fuku.today))}`);
+  lines.push(`　👥 報告　${members.length}名`);
+  lines.push(`━━━━━━━━━━━━━━━`);
+  return lines.join('\n');
+}
+
+function copyLineText() {
+  const text=document.getElementById('lineOutputText').value;
+  const btn=document.getElementById('copyBtn');
+  navigator.clipboard.writeText(text).then(()=>{
+    btn.textContent='✅ コピーしました！'; btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent='📋 コピーする'; btn.classList.remove('copied'); },2000);
+  }).catch(()=>{ const ta=document.getElementById('lineOutputText'); ta.select(); document.execCommand('copy'); showToast('✅ コピーしました！'); });
+}
+
+// ── Storage ───────────────────────────────────────────────
+function getMonthlyData() {
+  try {
+    const r=localStorage.getItem(STORAGE_KEY);
+    const store=r?JSON.parse(r):{};
+    if (store.yearMonth&&store.yearMonth!==YEAR_MONTH) return {yearMonth:YEAR_MONTH,members:{},log:[]};
+    return store.yearMonth?store:{yearMonth:YEAR_MONTH,members:{},log:[]};
+  } catch(e){ return {yearMonth:YEAR_MONTH,members:{},log:[]}; }
+}
+function saveMonthlyData(data) {
+  try { localStorage.setItem(STORAGE_KEY,JSON.stringify(data)); } catch(e){ alert('保存に失敗しました。'); }
+}
+function accumulateToMonthly(members) {
+  const data=getMonthlyData();
+  const today=`${NOW.getFullYear()}/${NOW.getMonth()+1}/${NOW.getDate()}`;
+  members.forEach(m=>{
+    const key=m.name||'不明';
+    if (!data.members[key]) data.members[key]={cShinki:0,cKaiyaku:0,jiriki:0,anken:0,ffShinki:0,ffKaiyaku:0,jiakoShinki:0,jiakoKaiyaku:0,kaishaS:0,kaishaK:0,secchi:0,fukuSales:0,days:0};
+    const acc=data.members[key];
+    if (!m.allZero) {
+      acc.cShinki    +=(m.c.todayShinki ??0);
+      acc.cKaiyaku   +=(m.c.todayKaiyaku??0);
+      acc.jiriki     +=(m.c.jiriki      ??0);
+      acc.anken      +=(m.c.anken       ??0);
+      acc.ffShinki   +=(m.ff.shinki     ??0);
+      acc.ffKaiyaku  +=(m.ff.kaiyaku    ??0);
+      acc.jiakoShinki+=(m.jiako.shinki  ??0);
+      acc.jiakoKaiyaku+=(m.jiako.kaiyaku??0);
+      acc.kaishaS    +=(m.kaisha.shinki ??0);
+      acc.kaishaK    +=(m.kaisha.kaiyaku??0);
+      acc.secchi     +=(m.secchi.today  ??0);
+      acc.fukuSales  +=(m.fuku.today    ??0);
+    }
+    acc.days+=1;
+  });
+  if (!data.log) data.log=[];
+  data.log.unshift(`${today}　${members.map(m=>m.name||'不明').join('・')}　${members.length}名分を記録`);
+  if (data.log.length>30) data.log=data.log.slice(0,30);
+  saveMonthlyData(data);
+}
+
+// ── 月次表示 ─────────────────────────────────────────────
+function renderMonthly() {
+  const data=getMonthlyData();
+  const members=data.members||{};
+  const names=Object.keys(members);
+  const [y,mo]=(data.yearMonth||YEAR_MONTH).split('-');
+  document.getElementById('monthlyMeta').textContent=`${y}年${parseInt(mo)}月　${names.length}名記録中`;
+
+  if (!names.length) {
+    document.getElementById('monthlyContent').innerHTML=`<div class="empty"><div class="empty-icon">📭</div><div>まだデータがありません。</div></div>`;
+    return;
+  }
+  const total={cShinki:0,cKaiyaku:0,jiriki:0,anken:0,ffShinki:0,ffKaiyaku:0,jiakoShinki:0,jiakoKaiyaku:0,kaishaS:0,kaishaK:0,secchi:0,fukuSales:0};
+  names.forEach(n=>{ const m=members[n]; Object.keys(total).forEach(k=>total[k]+=(m[k]||0)); });
+
+  const fN=v=>(v===0?`<span style="color:var(--muted)">0</span>`:`<span>${v}</span>`);
+  const fY2=v=>(v===0?`<span style="color:var(--muted)">¥0</span>`:`<span style="color:var(--orange)">¥${v.toLocaleString()}</span>`);
+  const nC=v=>v>0?`color:${CO.green}`:v<0?`color:${CO.red}`:`color:${CO.muted}`;
+
+  // メンバーマスタ順でソート（未登録は末尾）
+  const sortedNames = [
+    ...MEMBERS.filter(m=>names.includes(m)),
+    ...names.filter(n=>!MEMBERS.includes(n))
+  ];
+
+  let rows='';
+  sortedNames.forEach((name,i)=>{
+    const m=members[name];
+    const ac=AVATAR[MEMBERS.indexOf(name)>=0?MEMBERS.indexOf(name):i%AVATAR.length];
+    const net=(m.cShinki||0)-(m.cKaiyaku||0);
+    rows+=`<tr>
+      <td><div class="td-name"><div class="td-avatar" style="background:${ac}22;border:1.5px solid ${ac};color:${ac}">${name.slice(-1)}</div>${name}</div></td>
+      <td style="color:${CO.blue}">${fN(m.cShinki||0)}</td>
+      <td style="color:${CO.muted};font-size:12px">${m.jiriki||0}/${m.anken||0}</td>
+      <td style="color:${CO.red}">${fN(m.cKaiyaku||0)}</td>
+      <td style="${nC(net)};font-weight:800">${net>0?'+':''}${net}</td>
+      <td style="color:${CO.cyan}">${fN(m.ffShinki||0)}</td>
+      <td style="color:${CO.red};font-size:12px">${m.ffKaiyaku||0}</td>
+      <td style="color:${CO.purple}">${fN(m.jiakoShinki||0)}</td>
+      <td style="color:${CO.red};font-size:12px">${m.jiakoKaiyaku||0}</td>
+      <td style="color:${CO.yellow}">${fN(m.secchi||0)}</td>
+      <td>${fY2(m.fukuSales||0)}</td>
+      <td style="color:${CO.muted};font-size:12px">${m.days||0}日</td>
+    </tr>`;
+  });
+
+  const netT=total.cShinki-total.cKaiyaku;
+  document.getElementById('monthlyContent').innerHTML=`
+    <div class="monthly-team-bars">
+      <div class="team-title" style="margin-bottom:10px">チーム合計累計</div>
+      <div class="stat-grid">
+        ${[['💧C新規累計',total.cShinki+'台',CO.blue],['❌C解約累計',total.cKaiyaku+'台',total.cKaiyaku>0?CO.red:CO.muted],['📈純増累計',(netT>0?'+':'')+netT+'台',netT>=0?CO.green:CO.red],['🚰FF新規累計',total.ffShinki+'台',CO.cyan],['🧴ジアコ新規',total.jiakoShinki+'台',CO.purple],['🔧設置累計',total.secchi+'台',CO.yellow],['💴副商材累計','¥'+total.fukuSales.toLocaleString(),CO.orange]].map(([l,v,c])=>`<div class="stat-cell"><div class="stat-label">${l}</div><div class="stat-val" style="color:${c}">${v}</div></div>`).join('')}
+      </div>
+    </div>
+    <div class="monthly-table-wrap">
+      <table>
+        <thead><tr><th>名前</th><th style="color:${CO.blue}">💧C新規</th><th>自力/案件</th><th style="color:${CO.red}">C解約</th><th>純増</th><th style="color:${CO.cyan}">🚰FF新規</th><th style="color:${CO.red}">FF解約</th><th style="color:${CO.purple}">🧴ジアコ</th><th style="color:${CO.red}">ジアコ解約</th><th style="color:${CO.yellow}">🔧設置</th><th style="color:${CO.orange}">💴副商材</th><th>日数</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><td>合計</td><td style="color:${CO.blue}">${total.cShinki}</td><td style="font-size:12px;color:${CO.muted}">${total.jiriki}/${total.anken}</td><td style="color:${CO.red}">${total.cKaiyaku}</td><td style="${nC(netT)};font-weight:800">${netT>0?'+':''}${netT}</td><td style="color:${CO.cyan}">${total.ffShinki}</td><td style="color:${CO.red}">${total.ffKaiyaku}</td><td style="color:${CO.purple}">${total.jiakoShinki}</td><td style="color:${CO.red}">${total.jiakoKaiyaku}</td><td style="color:${CO.yellow}">${total.secchi}</td><td style="color:${CO.orange}">¥${total.fukuSales.toLocaleString()}</td><td>—</td></tr></tfoot>
+      </table>
+    </div>
+    ${data.log&&data.log.length?`<div class="log-area"><div style="margin-bottom:4px;font-weight:700">📝 保存ログ</div>${data.log.map(l=>`<div class="log-row">・${l}</div>`).join('')}</div>`:''}`;
+}
+
+function confirmReset() {
+  if (confirm('月次累計をリセットしますか？\n（この操作は取り消せません）')) {
+    saveMonthlyData({yearMonth:YEAR_MONTH,members:{},log:[]});
+    renderMonthly();
+    showToast('🔄 月次累計をリセットしました');
+  }
+}
+function showToast(msg) {
+  const t=document.getElementById('saveToast');
+  t.textContent=msg||'✅ 月次累計に保存しました';
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ── 表示ヘルパー ──────────────────────────────────────────
+const fmt  = (v,u='')=>(v===null||v===undefined)?'—':`${Number(v).toLocaleString()}${u}`;
+const fmtY = v=>(v===null||v===undefined)?'—':`¥${Number(v).toLocaleString()}`;
+const pct  = (v,g)=>(!g||v===null)?0:Math.min(100,Math.round(v/g*100));
+const bClr = (p,hi)=>p>=80?CO.green:p>=40?hi:CO.red;
+
+function progBar(val,goal,color,lL='',lR='') {
+  const p=pct(val,goal);
+  return `<div class="prog-row"><div class="prog-meta"><span>${lL}</span><span>${lR||p+'%'}</span></div><div class="prog-track"><div class="prog-fill" style="width:${p}%;background:${bClr(p,color)}"></div></div></div>`;
+}
+function breakdownBadge(jiriki,anken,color) {
+  if (jiriki===null&&anken===null) return '';
+  let h='<div class="breakdown">';
+  if (jiriki!==null) h+=`<div class="bd-badge" style="background:${color}18;border:1px solid ${color}44"><div class="bd-lbl">自力</div><div class="bd-val" style="color:${color}">${jiriki}</div></div>`;
+  if (anken !==null) h+=`<div class="bd-badge" style="background:#e3b34118;border:1px solid #e3b34144"><div class="bd-lbl">案件</div><div class="bd-val" style="color:#e3b341">${anken}</div></div>`;
+  return h+'</div>';
+}
+function serverBlock(title,icon,color,shinki,kaiyaku,extra='') {
+  const sc=((shinki??0)>0)?color:CO.muted, kc=((kaiyaku??0)>0)?CO.red:CO.muted;
+  const dv=v=>v===null?'—':v, u=v=>v===null?'':'<span class="sv-unit">台</span>';
+  return `<div class="server-block" style="border:1px solid ${color}33"><div class="server-head"><span>${icon}</span><span class="server-name" style="color:${color}">${title}</span></div><div class="sv-vals"><div class="sv-cell"><div class="sv-lbl">新規</div><div class="sv-val" style="color:${sc}">${dv(shinki)}${u(shinki)}</div></div><div class="divider-v"></div><div class="sv-cell"><div class="sv-lbl">解約</div><div class="sv-val" style="color:${kc}">${dv(kaiyaku)}${u(kaiyaku)}</div></div></div>${extra}</div>`;
+}
+function memberCardHTML(data,idx) {
+  const memberIdx = MEMBERS.indexOf(data.name);
+  const ac = memberIdx >= 0 ? AVATAR[memberIdx] : AVATAR[idx % AVATAR.length];
+  const initial=data.name?data.name.slice(-1):'?';
+  if (data.allZero) return `<div class="member-card fade" style="animation-delay:${idx*.07}s"><div class="card-strip" style="background:linear-gradient(90deg,${ac},${ac}44)"></div><div class="card-body"><div class="card-header"><div class="avatar" style="background:${ac}22;border:2px solid ${ac};color:${ac}">${initial}</div><div><div class="card-name">${data.name||'不明'}</div><div class="card-sub">本日の実績</div></div></div><div style="text-align:center;padding:16px 0"><span class="zero-badge">📭 全て 0</span></div></div></div>`;
+  const shinkiP=pct(data.c.cumulShinki,data.c.goalShinki), fukuP=pct(data.fuku.cumul,data.fuku.goal);
+  let kaishaExtra='';
+  if (data.kaisha.shinki!==null||data.kaisha.kaiyaku!==null) {
+    let b='';
+    if (data.kaisha.shinki !==null) b+=`<div class="kaisha-badge" style="background:${CO.blue}18;border:1px solid ${CO.blue}44"><div class="kb-lbl">会社新規</div><div class="kb-val" style="color:${CO.blue}">${data.kaisha.shinki}</div></div>`;
+    if (data.kaisha.kaiyaku!==null) b+=`<div class="kaisha-badge" style="background:${CO.red}18;border:1px solid ${CO.red}44"><div class="kb-lbl">会社解約</div><div class="kb-val" style="color:${CO.red}">${data.kaisha.kaiyaku}</div></div>`;
+    kaishaExtra=`<div class="kaisha-area"><div class="kaisha-lbl">🏢 会社成績</div><div class="kaisha-badges">${b}</div></div>`;
+  }
+  const numBox=(lbl,val,color)=>`<div class="num-box"><div class="num-lbl">${lbl}</div><div class="num-val" style="color:${color}">${val===null?'<span style="color:var(--muted)">—</span>':val}<span class="num-unit">${val!==null?'台':''}</span></div></div>`;
+  const fukuCell=(lbl,val)=>`<div class="fuku-cell"><div class="fuku-lbl">${lbl}</div><div class="fuku-val" style="color:${(val??0)>0?CO.orange:CO.muted}">${fmtY(val)}</div></div>`;
+  return `<div class="member-card fade" style="animation-delay:${idx*.07}s"><div class="card-strip" style="background:linear-gradient(90deg,${ac},${ac}44)"></div><div class="card-body">
+    <div class="card-header"><div class="avatar" style="background:${ac}22;border:2px solid ${ac};color:${ac}">${initial}</div><div><div class="card-name">${data.name||'不明'}</div><div class="card-sub">本日の実績</div></div></div>
+    <div class="sec"><div class="sec-label">📡 サーバー（本日 新規 / 解約）</div><div class="server-row">${serverBlock('クリクラ','💧',CO.blue,data.c.todayShinki,data.c.todayKaiyaku,breakdownBadge(data.c.jiriki,data.c.anken,CO.blue)+kaishaExtra)}${serverBlock('FF（浄水）','🚰',CO.cyan,data.ff.shinki,data.ff.kaiyaku)}${serverBlock('ジアコ','🧴',CO.purple,data.jiako.shinki,data.jiako.kaiyaku)}</div></div>
+    ${(data.c.cumulShinki!==null||data.c.goalShinki!==null||data.c.cumulKaiyaku!==null)?`<div class="sec"><div class="sec-label">📈 クリクラ 累計</div><div class="num-row">${numBox('新規累計',data.c.cumulShinki,CO.blue)}${data.c.goalShinki!==null?numBox('目標',data.c.goalShinki,CO.muted):''}${numBox('解約累計',data.c.cumulKaiyaku,(data.c.cumulKaiyaku??0)>0?CO.red:CO.muted)}</div>${data.c.goalShinki!==null?progBar(data.c.cumulShinki,data.c.goalShinki,CO.blue,'進捗',shinkiP+'%'):''}</div>`:''}
+    ${data.secchi.today!==null?`<div class="sec"><div class="sec-label">🔧 設置</div><div class="num-row">${numBox('本日',data.secchi.today,(data.secchi.today??0)>0?CO.yellow:CO.muted)}</div>${breakdownBadge(data.secchi.jiriki,data.secchi.anken,CO.yellow)}</div>`:''}
+    ${(data.fuku.today!==null||data.fuku.cumul!==null)?`<div class="sec" style="margin-bottom:0"><div class="sec-label">💴 副商材売上</div><div class="fuku-row">${fukuCell('本日',data.fuku.today)}${data.fuku.cumul!==null?fukuCell('累計',data.fuku.cumul):''}</div>${data.fuku.goal!==null?progBar(data.fuku.cumul,data.fuku.goal,CO.orange,'目標 '+fmtY(data.fuku.goal),fukuP+'%'):''}</div>`:''}
+  </div></div>`;
+}
+function teamSummaryHTML(members) {
+  const s=fn=>members.reduce((a,m)=>a+(fn(m)??0),0);
+  const ts=s(m=>m.c.todayShinki),tf=s(m=>m.ff.shinki),tj=s(m=>m.jiako.shinki);
+  const tk=s(m=>m.c.todayKaiyaku),tse=s(m=>m.secchi.today);
+  const ks=s(m=>m.kaisha.shinki),kk=s(m=>m.kaisha.kaiyaku);
+  const fu=s(m=>m.fuku.today),cs=s(m=>m.c.cumulShinki),cg=s(m=>m.c.goalShinki);
+  const fc=s(m=>m.fuku.cumul),fg=s(m=>m.fuku.goal);
+  const jiriki=s(m=>m.c.jiriki),anken=s(m=>m.c.anken);
+  const cp=pct(cs,cg),fp=pct(fc,fg);
+  const sc=(l,v,c)=>`<div class="stat-cell"><div class="stat-label">${l}</div><div class="stat-val" style="color:${c}">${v}</div></div>`;
+  return `<div class="team-box fade"><div class="team-title">📊 チーム合計（本日）</div><div class="stat-grid">${sc('💧 クリクラ新規',fmt(ts,'台'),CO.blue)}${sc('　├ 自力',fmt(jiriki,'台'),CO.blue)}${sc('　└ 案件',fmt(anken,'台'),CO.yellow)}${sc('🚰 FF新規',fmt(tf,'台'),CO.cyan)}${sc('🧴 ジアコ新規',fmt(tj,'台'),CO.purple)}${sc('❌ クリクラ解約',fmt(tk,'台'),tk>0?CO.red:CO.muted)}${sc('🔧 設置',fmt(tse,'台'),CO.yellow)}${sc('🏢 会社新規',fmt(ks,'台'),CO.blue)}${sc('🏢 会社解約',fmt(kk,'台'),kk>0?CO.red:CO.muted)}${sc('💴 副商材(本日)',fmtY(fu),CO.orange)}${sc('👥 報告人数',members.length+'名',CO.purple)}</div>${cg?progBar(cs,cg,CO.blue,'💧 クリクラ新規 累計進捗',fmt(cs,'台')+' / '+fmt(cg,'台')+'　'+cp+'%'):''}${fg?progBar(fc,fg,CO.orange,'💴 副商材 累計進捗',fmtY(fc)+' / '+fmtY(fg)+'　'+fp+'%'):''}</div>`;
+}
+
+// ── メイン ───────────────────────────────────────────────
+async function parse() {
+  const text = document.getElementById('lineInput').value;
+  let members = parseReports(text);
+
+  if (!members.length) {
+    document.getElementById('teamSummary').innerHTML='';
+    document.getElementById('cardsGrid').innerHTML=`<div class="empty"><div class="empty-icon">📭</div><div>日報が見つかりませんでした。<br>メンバー名の後に空行を入れてください。</div></div>`;
+    document.getElementById('lineOutputText').value='日報が見つかりませんでした。';
+    switchTab('result');
+    return;
+  }
+
+  // 名前不明のメンバーがいたらモーダルで確認
+  if (members.some(m=>!m.name)) {
+    const confirmed = await showNameModal(members);
+    if (!confirmed) return; // キャンセル
+    members = confirmed;
+  }
+
+  accumulateToMonthly(members);
+  showToast('✅ 月次累計に保存しました');
+  document.getElementById('teamSummary').innerHTML=teamSummaryHTML(members);
+  document.getElementById('cardsGrid').innerHTML=members.map((m,i)=>memberCardHTML(m,i)).join('');
+  document.getElementById('lineOutputText').value=generateLineText(members);
+  switchTab('result');
+}
+</script>
+</body>
+</html>
